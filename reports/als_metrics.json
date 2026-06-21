@@ -1,0 +1,36 @@
+{
+  "dataset": "MovieLens 1M",
+  "split": "latest positive interaction per eligible user",
+  "positive_rating_threshold": 4.0,
+  "train_interactions": 569243,
+  "test_interactions": 6037,
+  "k": 10,
+  "popularity": {
+    "users": 6037,
+    "k": 10,
+    "recall_at_k": 0.03892661918171277,
+    "ndcg_at_k": 0.019254333739711218,
+    "catalog_coverage": 0.03287050155851516
+  },
+  "als": {
+    "hyperparameters": {
+      "factors": 64,
+      "regularization": 0.01,
+      "alpha": 20.0,
+      "iterations": 20,
+      "random_state": 42
+    },
+    "metrics": {
+      "users": 6037,
+      "k": 10,
+      "recall_at_k": 0.079840980619513,
+      "ndcg_at_k": 0.03900626036911807,
+      "catalog_coverage": 0.4273165202606971
+    }
+  },
+  "absolute_change": {
+    "recall_at_k": 0.04091436143780023,
+    "ndcg_at_k": 0.019751926629406853,
+    "catalog_coverage": 0.39444601870218193
+  }
+}

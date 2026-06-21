@@ -3,6 +3,7 @@ import unittest
 import pandas as pd
 
 from recommender import (
+    ALSRecommender,
     PopularityRecommender,
     evaluate_top_k,
     make_positive_interactions,
@@ -62,6 +63,36 @@ class RecommenderTest(unittest.TestCase):
         self.assertEqual(metrics["recall_at_k"], 1.0)
         self.assertEqual(metrics["ndcg_at_k"], 1.0)
         self.assertAlmostEqual(metrics["catalog_coverage"], 2 / 3)
+
+    def test_als_recommendations_are_catalog_items_not_seen_in_training(self):
+        train = pd.DataFrame(
+            [
+                (1, 10),
+                (1, 20),
+                (2, 10),
+                (2, 30),
+                (3, 20),
+                (3, 40),
+                (4, 30),
+                (4, 40),
+            ],
+            columns=["user_id", "movie_id"],
+        )
+
+        model = ALSRecommender(
+            factors=2,
+            iterations=3,
+            random_state=42,
+        ).fit(train)
+        recommendations = model.recommend_many([1, 2], k=2)
+
+        seen_by_user = {
+            user_id: set(group["movie_id"])
+            for user_id, group in train.groupby("user_id")
+        }
+        for user_id, movie_ids in recommendations.items():
+            self.assertTrue(set(movie_ids).issubset(model.catalog))
+            self.assertFalse(set(movie_ids).intersection(seen_by_user[user_id]))
 
 
 if __name__ == "__main__":

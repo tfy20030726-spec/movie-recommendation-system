@@ -13,6 +13,12 @@ class Recommender(Protocol):
 
     def recommend(self, user_id: int, k: int = 10) -> list[int]: ...
 
+    def recommend_many(
+        self,
+        user_ids: list[int],
+        k: int = 10,
+    ) -> dict[int, list[int]]: ...
+
 
 def recall_at_k(
     recommended: list[int],
@@ -66,9 +72,10 @@ def evaluate_top_k(
     recalls: list[float] = []
     ndcgs: list[float] = []
     recommended_items: set[int] = set()
+    recommendations = model.recommend_many(list(relevant_by_user), k)
 
     for user_id, relevant in relevant_by_user.items():
-        recommended = model.recommend(user_id, k)
+        recommended = recommendations.get(user_id, [])
         recalls.append(recall_at_k(recommended, relevant, k))
         ndcgs.append(ndcg_at_k(recommended, relevant, k))
         recommended_items.update(recommended)
