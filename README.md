@@ -1,5 +1,7 @@
 # Two-Stage Movie Recommendation System
 
+[![CI](https://github.com/tfy20030726-spec/movie-recommendation-system/actions/workflows/ci.yml/badge.svg)](https://github.com/tfy20030726-spec/movie-recommendation-system/actions/workflows/ci.yml)
+
 使用 MovieLens 1M 真实评分数据构建的推荐算法项目。项目已完成可复现的数据下载、时间切分、热门推荐基线和隐式反馈 ALS 召回；所有模型使用同一测试集和 Top-K 指标比较。
 
 ## 为什么先做基线
