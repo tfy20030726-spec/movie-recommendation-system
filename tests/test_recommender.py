@@ -1,17 +1,39 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 import pandas as pd
 
 from recommender import (
     ALSRecommender,
+    LightGBMReranker,
     PopularityRecommender,
+    build_candidate_frame,
     evaluate_top_k,
+    load_movies,
     make_positive_interactions,
+    recommendation_lists_from_candidates,
     temporal_leave_one_out,
+    temporal_train_validation_test_split,
 )
 
 
 class RecommenderTest(unittest.TestCase):
+    def test_movie_metadata_extracts_release_year_and_genres(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            movies_path = Path(temporary_directory) / "movies.dat"
+            movies_path.write_text(
+                "1::Toy Story (1995)::Animation|Children's\n"
+                "2::Unknown Year::Drama\n",
+                encoding="latin-1",
+            )
+
+            movies = load_movies(movies_path)
+
+            self.assertEqual(int(movies.loc[0, "release_year"]), 1995)
+            self.assertEqual(movies.loc[0, "genres"], "Animation|Children's")
+            self.assertTrue(pd.isna(movies.loc[1, "release_year"]))
+
     def test_temporal_split_holds_out_latest_positive_without_leakage(self):
         ratings = pd.DataFrame(
             [
@@ -93,6 +115,84 @@ class RecommenderTest(unittest.TestCase):
         for user_id, movie_ids in recommendations.items():
             self.assertTrue(set(movie_ids).issubset(model.catalog))
             self.assertFalse(set(movie_ids).intersection(seen_by_user[user_id]))
+
+    def test_three_way_split_uses_second_last_for_validation_and_last_for_test(self):
+        interactions = pd.DataFrame(
+            [
+                (1, 10, 5.0, 100),
+                (1, 20, 5.0, 200),
+                (1, 30, 5.0, 300),
+                (1, 40, 5.0, 400),
+                (2, 10, 5.0, 100),
+                (2, 20, 5.0, 200),
+                (2, 30, 5.0, 300),
+                (3, 10, 5.0, 100),
+                (3, 20, 5.0, 200),
+            ],
+            columns=["user_id", "movie_id", "rating", "timestamp"],
+        )
+
+        train, validation, test = temporal_train_validation_test_split(
+            interactions
+        )
+
+        self.assertEqual(set(train["user_id"]), {1, 2})
+        self.assertEqual(
+            dict(zip(validation["user_id"], validation["movie_id"])),
+            {1: 30, 2: 20},
+        )
+        self.assertEqual(
+            dict(zip(test["user_id"], test["movie_id"])),
+            {1: 40, 2: 30},
+        )
+
+    def test_reranker_trains_on_forced_validation_targets(self):
+        train = pd.DataFrame(
+            [
+                (1, 10),
+                (1, 20),
+                (2, 10),
+                (2, 30),
+                (3, 20),
+                (3, 40),
+                (4, 30),
+                (4, 40),
+                (5, 10),
+                (5, 40),
+                (6, 20),
+                (6, 30),
+            ],
+            columns=["user_id", "movie_id"],
+        )
+        validation = pd.DataFrame(
+            [(1, 30), (2, 20), (3, 10), (4, 20), (5, 30), (6, 40)],
+            columns=["user_id", "movie_id"],
+        )
+        model = ALSRecommender(
+            factors=2,
+            iterations=3,
+            random_state=42,
+        ).fit(train)
+
+        candidates = build_candidate_frame(
+            model,
+            train,
+            validation,
+            candidate_k=2,
+            force_target=True,
+        )
+        reranker = LightGBMReranker(n_estimators=5, num_leaves=7).fit(candidates)
+        reranked = reranker.rerank(candidates)
+        recommendations = recommendation_lists_from_candidates(
+            reranked,
+            "ranking_score",
+            k=2,
+        )
+
+        self.assertTrue((candidates.groupby("user_id")["label"].sum() == 1).all())
+        self.assertEqual(reranker.training_users, 5)
+        self.assertEqual(reranker.validation_users, 1)
+        self.assertEqual(set(recommendations), {1, 2, 3, 4, 5, 6})
 
 
 if __name__ == "__main__":

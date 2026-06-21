@@ -65,6 +65,36 @@ def evaluate_top_k(
             "catalog_coverage": 0.0,
         }
 
+    recommendations = model.recommend_many(
+        test_interactions["user_id"].astype(int).unique().tolist(),
+        k,
+    )
+    return evaluate_recommendation_lists(
+        recommendations,
+        test_interactions,
+        model.catalog,
+        k,
+    )
+
+
+def evaluate_recommendation_lists(
+    recommendations: dict[int, list[int]],
+    test_interactions: pd.DataFrame,
+    catalog: set[int],
+    k: int = 10,
+) -> dict[str, float | int]:
+    """Evaluate precomputed recommendation lists against held-out positives."""
+    if k <= 0:
+        raise ValueError("k must be positive")
+    if test_interactions.empty:
+        return {
+            "users": 0,
+            "k": k,
+            "recall_at_k": 0.0,
+            "ndcg_at_k": 0.0,
+            "catalog_coverage": 0.0,
+        }
+
     relevant_by_user = {
         int(user_id): set(group["movie_id"].astype(int))
         for user_id, group in test_interactions.groupby("user_id")
@@ -72,15 +102,13 @@ def evaluate_top_k(
     recalls: list[float] = []
     ndcgs: list[float] = []
     recommended_items: set[int] = set()
-    recommendations = model.recommend_many(list(relevant_by_user), k)
-
     for user_id, relevant in relevant_by_user.items():
         recommended = recommendations.get(user_id, [])
         recalls.append(recall_at_k(recommended, relevant, k))
         ndcgs.append(ndcg_at_k(recommended, relevant, k))
         recommended_items.update(recommended)
 
-    catalog_size = len(model.catalog)
+    catalog_size = len(catalog)
     return {
         "users": len(relevant_by_user),
         "k": k,

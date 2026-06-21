@@ -1,0 +1,45 @@
+{
+  "dataset": "MovieLens 1M",
+  "split": "per-user chronological train/validation/test",
+  "positive_rating_threshold": 4.0,
+  "train_interactions": 563206,
+  "validation_interactions": 6035,
+  "test_interactions": 6035,
+  "candidate_k": 100,
+  "ranking_k": 10,
+  "ranking_training_users": 4825,
+  "ranking_early_stopping_users": 1206,
+  "ranking_training_rows": 485134,
+  "ranking_early_stopping_rows": 121257,
+  "best_iteration": 10,
+  "als_candidate_recall": 0.3923777961888981,
+  "als_at_k": {
+    "users": 6035,
+    "k": 10,
+    "recall_at_k": 0.07009113504556752,
+    "ndcg_at_k": 0.03464744626162239,
+    "catalog_coverage": 0.4278014184397163
+  },
+  "lightgbm_at_k": {
+    "users": 6035,
+    "k": 10,
+    "recall_at_k": 0.06743993371996686,
+    "ndcg_at_k": 0.03120499254301131,
+    "catalog_coverage": 0.47120567375886524
+  },
+  "absolute_change": {
+    "recall_at_k": -0.0026512013256006633,
+    "ndcg_at_k": -0.0034424537186110785,
+    "catalog_coverage": 0.04340425531914893
+  },
+  "feature_importance": {
+    "als_score": 27,
+    "reciprocal_als_rank": 38,
+    "log_item_popularity": 13,
+    "log_user_activity": 34,
+    "genre_affinity": 7,
+    "genre_count": 2,
+    "release_year_distance": 19
+  },
+  "methodology_note": "Validation targets train the reranker; test targets are used only for final offline evaluation."
+}

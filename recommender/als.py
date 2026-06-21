@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -29,9 +30,10 @@ class ALSRecommender:
         self.random_state = random_state
         self.catalog: set[int] = set()
         self._user_to_index: dict[int, int] = {}
+        self._item_to_index: dict[int, int] = {}
         self._index_to_item: np.ndarray = np.array([], dtype=np.int64)
         self._user_items: csr_matrix | None = None
-        self._model: object | None = None
+        self._model: Any | None = None
 
     def fit(self, interactions: pd.DataFrame) -> "ALSRecommender":
         required = {"user_id", "movie_id"}
@@ -48,11 +50,11 @@ class ALSRecommender:
         self._user_to_index = {
             int(user_id): index for index, user_id in enumerate(user_ids)
         }
-        item_to_index = {
+        self._item_to_index = {
             int(movie_id): index for index, movie_id in enumerate(item_ids)
         }
         rows = interactions["user_id"].map(self._user_to_index).to_numpy()
-        columns = interactions["movie_id"].map(item_to_index).to_numpy()
+        columns = interactions["movie_id"].map(self._item_to_index).to_numpy()
         values = np.ones(len(interactions), dtype=np.float32)
         self._user_items = csr_matrix(
             (values, (rows, columns)),
@@ -82,13 +84,26 @@ class ALSRecommender:
         user_ids: Iterable[int],
         k: int = 10,
     ) -> dict[int, list[int]]:
+        scored = self.recommend_scored_many(user_ids, k)
+        return {
+            user_id: [movie_id for movie_id, _ in recommendations]
+            for user_id, recommendations in scored.items()
+        }
+
+    def recommend_scored_many(
+        self,
+        user_ids: Iterable[int],
+        k: int = 10,
+    ) -> dict[int, list[tuple[int, float]]]:
         if k <= 0:
             raise ValueError("k must be positive")
         if self._model is None or self._user_items is None:
             raise RuntimeError("ALSRecommender must be fitted before recommendation")
 
         requested = [int(user_id) for user_id in user_ids]
-        results = {user_id: [] for user_id in requested}
+        results: dict[int, list[tuple[int, float]]] = {
+            user_id: [] for user_id in requested
+        }
         known_users = [
             user_id for user_id in requested if user_id in self._user_to_index
         ]
@@ -99,12 +114,44 @@ class ALSRecommender:
             [self._user_to_index[user_id] for user_id in known_users],
             dtype=np.int32,
         )
-        item_indices, _ = self._model.recommend(
+        item_indices, scores = self._model.recommend(
             internal_users,
             self._user_items[internal_users],
             N=k,
             filter_already_liked_items=True,
         )
-        for user_id, indices in zip(known_users, item_indices):
-            results[user_id] = self._index_to_item[indices].astype(int).tolist()
+        item_indices = np.atleast_2d(item_indices)
+        scores = np.atleast_2d(scores)
+        for user_id, indices, user_scores in zip(
+            known_users,
+            item_indices,
+            scores,
+        ):
+            movie_ids = self._index_to_item[indices].astype(int).tolist()
+            results[user_id] = [
+                (movie_id, float(score))
+                for movie_id, score in zip(movie_ids, user_scores)
+            ]
         return results
+
+    def score_pairs(
+        self,
+        pairs: Iterable[tuple[int, int]],
+    ) -> dict[tuple[int, int], float]:
+        """Return latent dot-product scores for known user-item pairs."""
+        if self._model is None:
+            raise RuntimeError("ALSRecommender must be fitted before scoring")
+
+        scores: dict[tuple[int, int], float] = {}
+        for user_id, movie_id in pairs:
+            user_index = self._user_to_index.get(int(user_id))
+            item_index = self._item_to_index.get(int(movie_id))
+            if user_index is None or item_index is None:
+                continue
+            scores[(int(user_id), int(movie_id))] = float(
+                np.dot(
+                    self._model.user_factors[user_index],
+                    self._model.item_factors[item_index],
+                )
+            )
+        return scores
