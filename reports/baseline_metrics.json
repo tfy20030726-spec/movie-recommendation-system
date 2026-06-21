@@ -1,0 +1,19 @@
+{
+  "dataset": "MovieLens 1M",
+  "split": "latest positive interaction per eligible user",
+  "positive_rating_threshold": 4.0,
+  "raw_ratings": 1000209,
+  "users": 6040,
+  "movies": 3706,
+  "positive_interactions": 575281,
+  "train_interactions": 569243,
+  "test_interactions": 6037,
+  "model": "global popularity excluding seen items",
+  "metrics": {
+    "users": 6037,
+    "k": 10,
+    "recall_at_k": 0.03892661918171277,
+    "ndcg_at_k": 0.019254333739711218,
+    "catalog_coverage": 0.03287050155851516
+  }
+}
