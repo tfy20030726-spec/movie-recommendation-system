@@ -18,6 +18,7 @@ from recommender import (  # noqa: E402
     load_movies,
     load_ratings,
     make_positive_interactions,
+    paired_bootstrap_metric_differences,
     temporal_train_validation_test_split,
 )
 from recommender.ranking import (  # noqa: E402
@@ -33,6 +34,7 @@ def run_two_stage(
     min_rating: float,
     k: int,
     candidate_k: int,
+    bootstrap_resamples: int,
 ) -> dict[str, object]:
     ratings = load_ratings(ratings_path)
     movies = load_movies(ratings_path.with_name("movies.dat"))
@@ -87,6 +89,13 @@ def run_two_stage(
         als.catalog,
         candidate_k,
     )
+    paired_intervals = paired_bootstrap_metric_differences(
+        als_lists,
+        reranked_lists,
+        test,
+        k=k,
+        n_resamples=bootstrap_resamples,
+    )
 
     return {
         "dataset": "MovieLens 1M",
@@ -109,6 +118,7 @@ def run_two_stage(
             metric: reranker_metrics[metric] - als_metrics[metric]
             for metric in ("recall_at_k", "ndcg_at_k", "catalog_coverage")
         },
+        "paired_bootstrap_change": paired_intervals,
         "feature_importance": reranker.feature_importance(),
         "methodology_note": (
             "Validation targets train the reranker; test targets are used only "
@@ -123,6 +133,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--min-rating", type=float, default=4.0)
     parser.add_argument("--k", type=int, default=10)
     parser.add_argument("--candidate-k", type=int, default=100)
+    parser.add_argument("--bootstrap-resamples", type=int, default=1000)
     parser.add_argument(
         "--output",
         type=Path,
@@ -142,6 +153,7 @@ def main() -> None:
         min_rating=arguments.min_rating,
         k=arguments.k,
         candidate_k=arguments.candidate_k,
+        bootstrap_resamples=arguments.bootstrap_resamples,
     )
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(

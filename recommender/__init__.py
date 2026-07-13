@@ -13,6 +13,7 @@ from .evaluation import (
     evaluate_recommendation_lists,
     evaluate_top_k,
     ndcg_at_k,
+    paired_bootstrap_metric_differences,
     recall_at_k,
 )
 from .ranking import (
@@ -32,6 +33,7 @@ __all__ = [
     "load_ratings",
     "make_positive_interactions",
     "ndcg_at_k",
+    "paired_bootstrap_metric_differences",
     "recall_at_k",
     "recommendation_lists_from_candidates",
     "temporal_leave_one_out",

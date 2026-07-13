@@ -32,6 +32,24 @@
     "ndcg_at_k": -0.0034424537186110785,
     "catalog_coverage": 0.04340425531914893
   },
+  "paired_bootstrap_change": {
+    "method": "paired user bootstrap",
+    "users": 6035,
+    "resamples": 1000,
+    "confidence_level": 0.95,
+    "random_state": 42,
+    "difference": "candidate minus baseline",
+    "recall_at_k": {
+      "estimate": -0.002651201325600663,
+      "lower": -0.008289146644573319,
+      "upper": 0.0034797017398508698
+    },
+    "ndcg_at_k": {
+      "estimate": -0.0034424537186110754,
+      "lower": -0.006794112159564042,
+      "upper": 1.6513343928398113e-05
+    }
+  },
   "feature_importance": {
     "als_score": 27,
     "reciprocal_als_rank": 38,

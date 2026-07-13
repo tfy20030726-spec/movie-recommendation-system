@@ -32,5 +32,23 @@
     "recall_at_k": 0.04091436143780023,
     "ndcg_at_k": 0.019751926629406853,
     "catalog_coverage": 0.39444601870218193
+  },
+  "paired_bootstrap_change": {
+    "method": "paired user bootstrap",
+    "users": 6037,
+    "resamples": 1000,
+    "confidence_level": 0.95,
+    "random_state": 42,
+    "difference": "candidate minus baseline",
+    "recall_at_k": {
+      "estimate": 0.04091436143780023,
+      "lower": 0.032466456849428525,
+      "upper": 0.048865330462150074
+    },
+    "ndcg_at_k": {
+      "estimate": 0.019751926629406853,
+      "lower": 0.01527597226355971,
+      "upper": 0.024070952691582336
+    }
   }
 }
